@@ -1,10 +1,68 @@
+$(".inspiration-getter").on("submit", function(e) {
+	e.preventDefault();
+	$('.results').html('');
+	var query = $("#inspiration-query").val();
+	getInspiration(query);
+});
+
+var getInspiration = function(query) {
+	var request = {
+		tag: query,
+		site: 'stackoverflow'
+	};
+
+	$.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/" + request.tag + "/top-answerers/all_time",
+		data: request,
+		dataType: "jsonp", //use jsonp to avoid cross origin issues
+		type: "GET"
+	})
+	.done(function(result){ //this waits for the ajax to return with a succesful promise object
+		console.log(result);
+		var searchResults = showSearchResults(query, result.items.length);
+		$('.search-results').html(searchResults);
+		$.each(result.items, function(i, item) {
+			console.log(item);
+			var answerer = showAnswerer(item);
+			$(".results").append(answerer);
+		});
+	})
+	.fail(function(jqXHR, error){ //this waits for the ajax to return with an error promise object
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+};
+
+// this function takes the question object returned by the StackOverflow request
+// and returns new result to be appended to DOM
+var showAnswerer = function(answerer) {
+
+	// clone our result template code
+	var resultDisplay = $('.templates .inspiration-question').clone();
+
+	// set some properties related to answerer
+	var answererName = resultDisplay.find('.answerer');
+	answererName.html('<p><a target="_blank" '+
+		'href=http://stackoverflow.com/users/' + answerer.user.user_id + ' >' +
+		answerer.user.display_name +
+		'</a></p>');
+
+	var answererPostCount = resultDisplay.find('.post-count');
+	answererPostCount.html('<p>' + answerer.post_count + '</p>');
+
+	var answererScore = resultDisplay.find('.score');
+	answererScore.html('<p>' + answerer.score + '</p><br><br>');
+	return resultDisplay;
+};
+
+
 // this function takes the question object returned by the StackOverflow request
 // and returns new result to be appended to DOM
 var showQuestion = function(question) {
-	
+
 	// clone our result template code
 	var result = $('.templates .question').clone();
-	
+
 	// Set the question properties in result
 	var questionElem = result.find('.question-text a');
 	questionElem.attr('href', question.link);
@@ -49,15 +107,15 @@ var showError = function(error){
 // takes a string of semi-colon separated tags to be searched
 // for on StackOverflow
 var getUnanswered = function(tags) {
-	
+
 	// the parameters we need to pass in our request to StackOverflow's API
-	var request = { 
+	var request = {
 		tagged: tags,
 		site: 'stackoverflow',
 		order: 'desc',
 		sort: 'creation'
 	};
-	
+
 	$.ajax({
 		url: "http://api.stackexchange.com/2.2/questions/unanswered",
 		data: request,
@@ -66,6 +124,7 @@ var getUnanswered = function(tags) {
 	})
 	.done(function(result){ //this waits for the ajax to return with a succesful promise object
 		var searchResults = showSearchResults(request.tagged, result.items.length);
+
 
 		$('.search-results').html(searchResults);
 		//$.each is a higher order function. It takes an array and a function as an argument.
